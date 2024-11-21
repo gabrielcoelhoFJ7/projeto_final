@@ -1,78 +1,38 @@
 {% extends 'base.html' %}
 
 {% block conteudo %}
-    <div class="dashboard">
-        <h1>Lista de Produtos</h1>
+    <h1>Lista de Produtos</h1>
 
-        <!-- Grid de Produtos -->
-        <div class="product-grid">
-            {% for item1, item2 in cavalo %}
-            <div class="card product-card">
-                <div class="card-header">
-                    <h3>{{ item1.nome_produto }}</h3>
-                    <span class="product-id">#{{ item1.id_produto }}</span>
-                </div>
-                <p><strong>Preço:</strong> R$ {{ item1.preco_produto }}</p>
-                <p><strong>Categoria:</strong> {{ item2.nome_categoria }}</p>
-            </div>
-            {% endfor %}
-        </div>
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>Preço</th>
+            <th>Categoria</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item1, item2 in cavalo %}
+            <tr>
+                <td>{{ item1.id_produto }}</td>
+                <td>{{ item1.nome_produto }}</td>
+                <td>{{ item1.preco_produto }}</td>
+                <td>{{ item2.nome_categoria }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
 
-        <!-- Botões de navegação -->
-        <div class="pagination">
-            {% if pagina_atual > 1 %}
-                <a href="{{ url_for('produto', pagina=pagina_atual - 1) }}"><button>Página Anterior</button></a>
-            {% endif %}
-            {% if pagina_atual < total_paginas %}
-                <a href="{{ url_for('produto', pagina=pagina_atual + 1) }}"><button>Próxima Página</button></a>
-            {% endif %}
-        </div>
+    <!-- Botões de navegação -->
+    <div class="pagination">
+        {% if pagina_atual > 1 %}
+            <a href="{{ url_for('produto', pagina=pagina_atual - 1) }}">Página Anterior</a>
+        {% endif %}
+        {% if pagina_atual < total_paginas %}
+            <a href="{{ url_for('produto', pagina=pagina_atual + 1) }}">Próxima Página</a>
+        {% endif %}
     </div>
 
-    <style>
-        .dashboard {
-            padding: 20px;
-        }
-
-        h1 {
-            text-align: center;
-            margin-bottom: 30px;
-            color: #333;
-        }
-
-        .product-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }
-
-        .product-card {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            position: relative;
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-
-        .product-id {
-            font-size: 0.9em;
-            color: #666;
-            background-color: #e9ecef;
-            padding: 2px 8px;
-            border-radius: 12px;
-            white-space: nowrap; /* Evita quebra de linha */
-        }
-
-        .product-card p {
-            margin-top: 15px;
-        }
-
-    </style>
 {% endblock conteudo %}
+

@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Dogs and Dogs - A platform for pet sales and veterinary services.">
-    <meta name="keywords" content="dogs, pets, veterinary, sales">
-    <title>Dogs'n Dogs</title>
+    <meta name="description" content="EstoquePro - A platform for stock products and manage employees.">
+    <meta name="keywords" content="Stock Control, Products, Employees, Sales">
+    <title>EstoquePro</title>
     <link rel="stylesheet" href="../static/template.css">
 </head>
 <body>
@@ -13,34 +13,37 @@
 <header>
 
     <div class="container">
-<!--        <a href="{{ url_for('dashboard') }}">Dashboard</a>-->
+        <a href="{{ url_for('dashboard') }}">Dashboard</a>
         <a href="{{ url_for('produto') }}">Produtos</a>
-<!--        <a href="{{ url_for('#') }}">Consultas</a>-->
+        <a href="{{ url_for('funcionario') }}">Consultas</a>
         <div class="logo"><h1>EstoquePro</h1></div>
         <div class="icones">
             <div class="icone">
-                <img src="https://pinkcheeks.vtexassets.com/assets/vtex/assets-builder/pinkcheeks.store-theme/2.0.48/svg/hpa-search___1424af764f54cdaca77137f03e011ac9.svg" alt="">
+                <img src="https://pinkcheeks.vtexassets.com/assets/vtex/assets-builder/pinkcheeks.store-theme/2.0.48/svg/hpa-search___1424af764f54cdaca77137f03e011ac9.svg"
+                     alt="">
             </div>
             <div class="icone">
-            <img src="https://pinkcheeks.vtexassets.com/assets/vtex/assets-builder/pinkcheeks.store-theme/2.0.48/svg/hpa-wishlist___f590cef5e7d9adfde091ae71f03282fd.svg" alt="">
+                <img src="https://pinkcheeks.vtexassets.com/assets/vtex/assets-builder/pinkcheeks.store-theme/2.0.48/svg/hpa-wishlist___f590cef5e7d9adfde091ae71f03282fd.svg"
+                     alt="">
             </div>
             <div class="icone">
-                <img src="https://pinkcheeks.vtexassets.com/assets/vtex/assets-builder/pinkcheeks.store-theme/2.0.48/svg/hpa-account___b0052d0e901676dfa8fc1244c8a1802f.svg" alt="">
+                <img src="https://pinkcheeks.vtexassets.com/assets/vtex/assets-builder/pinkcheeks.store-theme/2.0.48/svg/hpa-account___b0052d0e901676dfa8fc1244c8a1802f.svg"
+                     alt="">
             </div>
-            </div>
+        </div>
 
 
     </div>
 </header>
 <main>
-<!--    <div class="flash-messages">-->
-<!--        {%- for mensagem in get_flashed_messages() %}-->
-<!--        <div class="flash-message">-->
-<!--            {{ mensagem }}-->
-<!--            <button class="close-button" onclick="this.parentElement.style.display='none';">X</button>-->
-<!--        </div>-->
-<!--        {%- endfor %}-->
-<!--    </div>-->
+    <!--    <div class="flash-messages">-->
+    <!--        {%- for mensagem in get_flashed_messages() %}-->
+        <!--        <div class="flash-message">-->
+        <!--            {{ mensagem }}-->
+        <!--            <button class="close-button" onclick="this.parentElement.style.display='none';">X</button>-->
+        <!--        </div>-->
+        <!--        {%- endfor %}-->
+    <!--    </div>-->
 
     {% block conteudo %}
     {% endblock %}

@@ -46,8 +46,7 @@ def funcionario():
     offset = (pagina_atual - 1) * produtos_por_pagina
 
     # Selecionar os produtos com limite e offset
-    lista_produtos = (select(Produto, Categoria)
-                      .join(Categoria, Categoria.id_categoria == Produto.id_categoria)
+    lista_produtos = (select(Funcionario)
                       .offset(offset).limit(produtos_por_pagina))
     lista_produtos = db_session.execute(lista_produtos).fetchall()
 
@@ -60,10 +59,9 @@ def funcionario():
                            total_paginas=total_paginas
                            )
 
-
 @app.route('/produto', methods=['GET'])
 def produto():
-    produtos_por_pagina = 15
+    produtos_por_pagina = 10
     # Obter o número da página a partir da query string (padrão: 1)
     pagina_atual = int(request.args.get('pagina', 1))
     print(pagina_atual)
