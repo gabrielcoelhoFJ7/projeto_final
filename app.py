@@ -2,7 +2,6 @@ from flask import Flask, render_template, redirect, url_for, request, flash, sen
 from models import Funcionario, Movimentacao, Produto, Categoria, db_session
 from datetime import datetime
 from sqlalchemy import select, func, extract
-from flask_babel import Babel
 import locale
 import os
 import plotly.express as px
@@ -31,7 +30,7 @@ def dashboard():
     offset = (pagina_atual - 1) * produtos_por_pagina
 
     # Obter total de produtos
-    total_produtos = db_session.query(Produto).count()
+    total_produtos = db_session.query(func.sum(Produto.qtd)).scalar()
 
     # Obter total de funcionários
     total_funcionarios = db_session.query(Funcionario).count()
@@ -98,14 +97,24 @@ def produto_grafico():
 @app.route('/funcionario', methods=['GET'])
 def funcionario():
     por_pagina = 15
-    # Obter o número da página a partir da query string (padrão: 1)
     pagina_atual = int(request.args.get('pagina', 1))
-    print(pagina_atual)
+    ordem = request.args.get('ordem', 'id_funcionario_desc')
+
     # Calcular o offset
     offset = (pagina_atual - 1) * por_pagina
 
+    # Determinar a ordem
+    if ordem == 'nome_asc':
+        order_by = Funcionario.nome_funcionario.asc()
+    elif ordem == 'nome_desc':
+        order_by = Funcionario.nome_funcionario.desc()
+    elif ordem == 'id_funcionario_asc':
+        order_by = Funcionario.id_funcionario.asc()
+    else:  # padrão
+        order_by = Funcionario.id_funcionario.desc()
+
     # Selecionar os produtos com limite e offset
-    lista = (select(Funcionario).offset(offset).limit(por_pagina))
+    lista = (select(Funcionario).offset(offset).limit(por_pagina).order_by(order_by))
     lista = db_session.execute(lista).scalars().all()
 
     total_veterinarios = db_session.query(Funcionario).count()
@@ -114,7 +123,8 @@ def funcionario():
     return render_template('funcionario.html',
                            cavalo=lista,
                            pagina_atual=pagina_atual,
-                           total_paginas=total_paginas
+                           total_paginas=total_paginas,
+                           ordem=ordem
                            )
 
 
@@ -168,19 +178,80 @@ def novo_funcionario():
     return render_template('novo_funcionario.html')
 
 
+@app.route('/editar_funcionario/<int:id_funcionario>', methods=["GET", "POST"])
+def editar_funcionario(id_funcionario):
+    funcionario = db_session.query(Funcionario).filter(Funcionario.id_funcionario == id_funcionario).first()
+    if not funcionario:
+        flash("Funcionário não encontrado.", "error")
+        return redirect(url_for('funcionario'))
+
+    if request.method == "POST":
+        # Captura os valores dos campos do formulário
+        nome_funcionario = request.form["form_nome_funcionario"]
+        sobrenome = request.form["form_sobrenome_funcionario"]
+        email = request.form["form_email_funcionario"]
+        cpf = request.form["form_cpf_funcionario"]
+        telefone = request.form["form_telefone_funcionario"]
+
+        # Lista para armazenar mensagens de erro
+        erros = []
+
+        # Validação de cada campo
+        if not nome_funcionario:
+            erros.append("O campo 'Nome' é obrigatório.")
+        if not sobrenome:
+            erros.append("O campo 'Sobrenome' é obrigatório.")
+        if not email:
+            erros.append("O campo 'Email' é obrigatório.")
+        if not cpf:
+            erros.append("O campo 'CPF' é obrigatório.")
+        if not telefone:
+            erros.append("O campo 'Telefone' é obrigatório.")
+
+        # Se houver erros, exibe todas as mensagens
+        if erros:
+            for erro in erros:
+                flash(erro, "error")
+        else:
+            try:
+                # Atualiza os dados do funcionário
+                funcionario.nome_funcionario = nome_funcionario
+                funcionario.sobrenome = sobrenome
+                funcionario.email = email
+                funcionario.cpf = cpf
+                funcionario.telefone = telefone
+
+                db_session.commit()
+                flash("Funcionário atualizado com sucesso!", "success")
+                return redirect(url_for('funcionario'))
+            except ValueError:
+                flash("Ocorreu um erro ao editar o funcionário.", "error")
+
+    return render_template('editar_funcionario.html', funcionario=funcionario)
+
+
 @app.route('/produto', methods=['GET'])
 def produto():
     por_pagina = 10
-    # Obter o número da página a partir da query string (padrão: 1)
     pagina_atual = int(request.args.get('pagina', 1))
-    print(pagina_atual)
-    # Calcular o offset
+    ordem = request.args.get('ordem', 'id_produto_desc')
     offset = (pagina_atual - 1) * por_pagina
+
+    # Determinar a ordem
+    if ordem == 'nome_asc':
+        order_by = Produto.nome_produto.asc()
+    elif ordem == 'nome_desc':
+        order_by = Produto.nome_produto.desc()
+    elif ordem == 'id_produto_asc':
+        order_by = Produto.id_produto.asc()
+    else:  # padrão
+        order_by = Produto.id_produto.desc()
 
     # Selecionar os produtos com limite e offset
     lista = (select(Produto, Categoria)
              .join(Categoria, Categoria.id_categoria == Produto.id_categoria)
-             .offset(offset).limit(por_pagina))
+             .offset(offset).limit(por_pagina)
+             .order_by(order_by))
     lista = db_session.execute(lista).fetchall()
 
     total_veterinarios = db_session.query(Produto).count()
@@ -189,13 +260,14 @@ def produto():
     return render_template('produto.html',
                            cavalo=lista,
                            pagina_atual=pagina_atual,
-                           total_paginas=total_paginas
-                           )
+                           total_paginas=total_paginas,
+                           ordem=ordem)
 
 
 @app.route('/novo_produto', methods=["POST", "GET"])
 def novo_produto():
-    lista = db_session.execute(select(Categoria)).scalars().all()
+    lista = db_session.execute(select(Categoria).order_by(Categoria.nome_categoria.asc())
+                               ).scalars().all()
     if request.method == "POST":
         # Captura os valores dos campos do formulário
         nome_produto = request.form["form_nome_produto"]
@@ -238,17 +310,74 @@ def novo_produto():
     return render_template('novo_produto.html', cavalo=lista)
 
 
+@app.route('/editar_produto/<int:id_produto>', methods=["GET", "POST"])
+def editar_produto(id_produto):
+    produto = db_session.query(Produto).filter(Produto.id_produto == id_produto).first()
+    if not produto:
+        flash("Produto não encontrado.", "error")
+        return redirect(url_for('produto'))
+
+    if request.method == "POST":
+        # Captura os valores dos campos do formulário
+        nome_produto = request.form["form_nome_produto"]
+        preco_produto = request.form["form_preco_produto"]
+        id_categoria = request.form["form_categoria_produto"]
+
+        # Lista para armazenar mensagens de erro
+        erros = []
+
+        # Validação de cada campo
+        if not nome_produto:
+            erros.append("O campo 'Nome do Produto' é obrigatório.")
+        if not preco_produto:
+            erros.append("O campo 'Preço' é obrigatório.")
+        elif not preco_produto.replace('.', '', 1).isdigit():
+            erros.append("O campo 'Preço' deve ser numérico.")
+        if not id_categoria:
+            erros.append("O campo 'Categoria' é obrigatório.")
+
+        # Se houver erros, exibe todas as mensagens
+        if erros:
+            for erro in erros:
+                flash(erro, "error")
+        else:
+            try:
+                # Atualiza os dados do produto
+                produto.nome_produto = nome_produto
+                produto.preco_produto = float(preco_produto)
+                produto.id_categoria = int(id_categoria)
+
+                db_session.commit()
+                flash("Produto atualizado com sucesso!", "success")
+                return redirect(url_for('produto'))
+            except Exception as e:
+                flash(f"Ocorreu um erro ao editar o produto: {str(e)}", "error")
+
+    # Carregar todas as categorias para exibição no formulário
+    categorias = db_session.query(Categoria).all()
+    return render_template('editar_produto.html', produto=produto, categorias=categorias)
+
+
 @app.route('/movimentacao', methods=['GET'])
 def movimentacao():
     por_pagina = 10
-    # Obter o número da página a partir da query string (padrão: 1)
     pagina_atual = int(request.args.get('pagina', 1))
-    print(pagina_atual)
-    # Calcular o offset
+    ordem = request.args.get('ordem', 'id_movimentacao_desc')
     offset = (pagina_atual - 1) * por_pagina
 
-    # Selecionar os produtos com limite e offset
+    # Determinar a ordem
+    if ordem == 'nome_asc':
+        order_by = Produto.nome_produto.asc()  # Verifique se isso está correto
+    elif ordem == 'nome_desc':
+        order_by = Produto.nome_produto.desc()
+    elif ordem == 'id_movimentacao_asc':
+        order_by = Movimentacao.id_movimentacao.asc()
+    else:  # padrão
+        order_by = Movimentacao.id_movimentacao.desc()
+
+    # Selecionar as movimentações com limite e offset
     lista = (select(Movimentacao, Funcionario, Produto)
+             .order_by(order_by)
              .join(Funcionario, Funcionario.id_funcionario == Movimentacao.id_funcionario)
              .join(Produto, Produto.id_produto == Movimentacao.id_produto)
              .offset(offset).limit(por_pagina))
@@ -260,15 +389,20 @@ def movimentacao():
     return render_template('movimentacao.html',
                            cavalo=lista,
                            pagina_atual=pagina_atual,
-                           total_paginas=total_paginas
-                           )
+                           total_paginas=total_paginas,
+                           ordem=ordem)
 
 
 @app.route('/nova_movimentacao', methods=["POST", "GET"])
 def nova_movimentacao():
-    # Obter listas de funcionários e produtos para preencher o formulário
-    lista_funcionarios = db_session.execute(select(Funcionario)).scalars().all()
-    lista_produtos = db_session.execute(select(Produto)).scalars().all()
+    lista_funcionarios = db_session.execute(
+        select(Funcionario).order_by(Funcionario.nome_funcionario.asc())
+    ).scalars().all()
+
+    lista_produtos = db_session.execute(
+        select(Produto).order_by(Produto.nome_produto.asc())
+    ).scalars().all()
+
     lista_movimentacao = db_session.execute(select(Movimentacao)).fetchall()
 
     if request.method == "POST":
@@ -322,7 +456,7 @@ def nova_movimentacao():
 def editar_movimentacao(id_movimentacao):
     lista_funcionarios = db_session.execute(select(Funcionario)).scalars().all()
     lista_produtos = db_session.execute(select(Produto)).scalars().all()
-    movimentacao = db_session.get(Movimentacao, id_movimentacao)
+    movimentacao = db_session.query(Movimentacao).filter_by(id_movimentacao=id_movimentacao).first()
 
     if not movimentacao:
         flash("Movimentação não encontrada.", "error")
@@ -332,9 +466,9 @@ def editar_movimentacao(id_movimentacao):
         try:
             # Atualiza os dados da movimentação
             movimentacao.quantidade_produto = request.form["form_quantidade"]
-            movimentacao.fornecedor = request.form["form_fornecedor"]  # Ensure this field exists
+            movimentacao.fornecedor = request.form["form_fornecedor"]
             movimentacao.status = request.form["form_status"]
-            movimentacao.data_da_movimentacao = request.form["form_data_emissao"]  # Ensure this field exists
+            movimentacao.data_da_movimentacao = request.form["form_data_emissao"]
             movimentacao.id_funcionario = request.form["form_id_funcionario"]
             movimentacao.id_produto = request.form["form_id_produto"]
 
@@ -351,6 +485,107 @@ def editar_movimentacao(id_movimentacao):
                            funcionarios=lista_funcionarios,
                            produtos=lista_produtos
                            )
+
+
+@app.route('/categoria', methods=['GET'])
+def categoria():
+    por_pagina = 5
+    pagina_atual = int(request.args.get('pagina', 1))
+    ordem = request.args.get('ordem', 'id_categoria_desc')
+    offset = (pagina_atual - 1) * por_pagina
+
+    # Determinar a ordem
+    if ordem == 'nome_asc':
+        order_by = Categoria.nome_categoria.asc()
+    elif ordem == 'nome_desc':
+        order_by = Categoria.nome_categoria.desc()
+    elif ordem == 'id_categoria_asc':
+        order_by = Categoria.id_categoria.asc()
+    else:  # padrão
+        order_by = Categoria.id_categoria.desc()
+
+    # Selecionar as categorias com limite e offset
+    lista = (select(Categoria).order_by(order_by).offset(offset).limit(por_pagina))
+    lista = db_session.execute(lista).scalars().all()
+
+    total_categorias = db_session.query(Categoria).count()
+    total_paginas = (total_categorias + por_pagina - 1) // por_pagina
+
+    return render_template('categoria.html',
+                           cavalo=lista,
+                           pagina_atual=pagina_atual,
+                           total_paginas=total_paginas,
+                           ordem=ordem)
+
+
+@app.route('/editar_categoria/<int:id_categoria>', methods=["GET", "POST"])
+def editar_categoria(id_categoria):
+    categoria = db_session.query(Categoria).filter(Categoria.id_categoria == id_categoria).first()
+    if not categoria:
+        flash("Categoria não encontrada.", "error")
+        return redirect(url_for('categoria'))
+
+    if request.method == "POST":
+        # Captura os valores dos campos do formulário
+        nome_categoria = request.form["form_nome_categoria"]
+
+        # Lista para armazenar mensagens de erro
+        erros = []
+
+        # Validação de cada campo
+        if not nome_categoria:
+            erros.append("O campo 'Nome da Categoria' é obrigatório.")
+
+        # Se houver erros, exibe todas as mensagens
+        if erros:
+            for erro in erros:
+                flash(erro, "error")
+        else:
+            try:
+                # Atualiza os dados da categoria
+                categoria.nome_categoria = nome_categoria
+
+                db_session.commit()
+                flash("Categoria atualizada com sucesso!", "success")
+                return redirect(url_for('categoria'))
+            except Exception as e:
+                flash(f"Ocorreu um erro ao editar a categoria: {str(e)}", "error")
+
+    return render_template('editar_categoria.html', categoria=categoria)
+
+
+@app.route('/nova_categoria', methods=["POST", "GET"])
+def nova_categoria():
+    lista = db_session.execute(select(Categoria).order_by(Categoria.nome_categoria.asc())
+                               ).scalars().all()
+    if request.method == "POST":
+        # Captura os valores dos campos do formulário
+        nome_categoria = request.form["form_nome_categoria"]
+        # Lista para armazenar mensagens de erro
+        erros = []
+
+        # Validação de cada campo
+        if not nome_categoria:
+            erros.append("O campo 'Nome' é obrigatório.")
+
+        # Se houver erros, exibe todas as mensagens
+        if erros:
+            for erro in erros:
+                flash(erro, "error")
+        else:
+            try:
+
+                # Se todos os campos estiverem preenchidos, cria o produto
+                form_evento = Categoria(
+                    nome_categoria=nome_categoria,
+                )
+                form_evento.save()
+                flash("Categoria criada com sucesso!", "success")
+                return redirect(url_for('categoria'))
+            except ValueError:
+                flash("Ocorreu um erro ao criar a Categoria.", "error")
+
+    return render_template('nova_categoria.html', cavalo=lista)
 
 
 if __name__ == '__main__':

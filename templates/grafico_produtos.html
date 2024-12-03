@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+    <h1>Gráfico de Produtos</h1>
+
+    <!-- Dropdown para selecionar o tipo de gráfico -->
+    <div style="margin-bottom: 20px;">
+        <label for="tipo_grafico">Escolha o tipo de gráfico:</label>
+        <select id="tipo_grafico" onchange="atualizarGrafico()">
+            <option value="bar" {% if request.args.get('tipo_grafico') == 'bar' %}selected{% endif %}>Gráfico de Barras</option>
+            <option value="line" {% if request.args.get('tipo_grafico') == 'line' %}selected{% endif %}>Gráfico de Linha</option>
+            <option value="pie" {% if request.args.get('tipo_grafico') == 'pie' %}selected{% endif %}>Gráfico de Pizza</option>
+            <option value="scatter" {% if request.args.get('tipo_grafico') == 'scatter' %}selected{% endif %}>Gráfico de Dispersão</option>
+            <option value="area" {% if request.args.get('tipo_grafico') == 'area' %}selected{% endif %}>Gráfico de Área</option>
+        </select>
+    </div>
+
+
+        {{ plot_html|safe }}
+
+
+    <!-- Estilos CSS -->
+<style>
+    .chart {
+        margin: 0 auto; /* Centraliza o gráfico */
+        padding: 0; /* Remove qualquer espaçamento interno */
+        width: 100%; /* Ocupa toda a largura disponível */
+        max-width: 1200px; /* Limita a largura máxima */
+    }
+
+    img, canvas {
+        display: block; /* Remove espaços extras causados por elementos inline */
+        margin: 0 auto; /* Centraliza o gráfico em relação ao contêiner */
+        width: 100%; /* Faz com que o gráfico ocupe toda a largura do contêiner */
+    }
+</style>
+
+
+
+    <!-- Script JavaScript para atualizar o gráfico -->
+    <script>
+        function atualizarGrafico() {
+            const tipoGrafico = document.getElementById('tipo_grafico').value;
+            window.location.href = `/produto/grafico?tipo_grafico=${tipoGrafico}`;
+        }
+    </script>
+
+{% endblock conteudo %}
